@@ -10,7 +10,8 @@ public class FinTrackDbContext : DbContext
     {
     }
 
-    public DbSet<Stock> Stocks { get; set;}
+    public DbSet<Stock> Stocks { get; set; }
+    public DbSet<Portfolio> Portfolios { get; set; }
 
     
 }
