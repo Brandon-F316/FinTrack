@@ -2,6 +2,7 @@ using FinTrack.Api.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FinTrack.Api.Models;
+using FinTrack.Api.DTOs.Stocks;
 
 namespace FinTrack.Api.Controllers;
 
@@ -17,25 +18,54 @@ public class StocksController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Stock>>> GetStocks()
+    public async Task<ActionResult<IEnumerable<StockDto>>> GetStocks()
     {
-    return await _context.Stocks.ToListAsync();
+        var stocks = await _context.Stocks
+            .Select(stock => new StockDto
+            {
+                Id = stock.Id,
+                Symbol = stock.Symbol,
+                CompanyName = stock.CompanyName
+            })
+            .ToListAsync();
+        return stocks;
     }
 
     [HttpPost]
-    public async Task<ActionResult<Stock>> CreateStock(Stock stock)
+    public async Task<ActionResult<StockDto>> CreateStock(CreateStockDto dto)
     {
+        var stock = new Stock
+        {
+            Symbol = dto.Symbol,
+            CompanyName = dto.CompanyName
+        };
+
         _context.Stocks.Add(stock);
+        
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetStocks), new { id = stock.Id }, stock);
+        var stockDto = new StockDto
+        {
+            Id = stock.Id,
+            Symbol = stock.Symbol,
+            CompanyName = stock.CompanyName
+        };
 
+        return CreatedAtAction(nameof(GetStock), new { id = stock.Id }, stockDto);
     } 
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Stock>> GetStock(int id)
+    public async Task<ActionResult<StockDto>> GetStock(int id)
     {
-        var stock = await _context.Stocks.FindAsync(id);
+        var stock = await _context.Stocks
+            .Where(stock => stock.Id == id)
+            .Select(stock => new StockDto
+            {
+                Id = stock.Id,
+                Symbol = stock.Symbol,
+                CompanyName = stock.CompanyName
+            })
+            .FirstOrDefaultAsync();
 
         if (stock == null)
         {
@@ -46,22 +76,17 @@ public class StocksController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateStock(int id, Stock stock)
+    public async Task<IActionResult> UpdateStock(int id, UpdateStockDto dto)
     {
-        if( id != stock.Id)
-        {
-            return BadRequest();
-        }
+        var stock = await _context.Stocks.FindAsync(id);
 
-        var existingStock = await _context.Stocks.FindAsync(id);
-
-        if(existingStock == null)
+        if (stock == null)
         {
             return NotFound();
         }
 
-        existingStock.Symbol = stock.Symbol;
-        existingStock.CompanyName = stock.CompanyName;
+        stock.Symbol = dto.Symbol;
+        stock.CompanyName = dto.CompanyName;
 
         await _context.SaveChangesAsync();
 
