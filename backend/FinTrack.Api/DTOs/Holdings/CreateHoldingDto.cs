@@ -5,7 +5,6 @@ namespace FinTrack.Api.DTOs.Holdings;
 
 public class CreateHoldingDto
 {
-    [Required]
     public int StockId { get; set; }
     
     public int PortfolioId { get; set; }
