@@ -44,6 +44,10 @@ public class FinTrackDbContext : DbContext
         modelBuilder.Entity<Transaction>()
             .Property(t => t.Quantity)
             .HasPrecision(18, 6);
+
+        modelBuilder.Entity<Holding>()
+            .HasIndex(h=> new { h.PortfolioId, h.StockId})
+            .IsUnique();
     }
     
 }
