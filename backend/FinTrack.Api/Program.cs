@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Text.Json.Serialization;
 using FinTrack.Api.Services;
+using FinTrack.Api.DTOs.Errors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +27,22 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseExceptionHandler(exceptionApp =>
+{
+    exceptionApp.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+
+        var response = new ApiErrorDto
+        {
+            Message = "An unexpected error occurred."
+        };
+
+        await context.Response.WriteAsJsonAsync(response);
+    });
+});
 
 if (app.Environment.IsDevelopment())
 {

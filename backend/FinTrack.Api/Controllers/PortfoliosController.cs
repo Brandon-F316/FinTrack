@@ -5,6 +5,7 @@ using FinTrack.Api.Models;
 using FinTrack.Api.DTOs.Portfolios;
 using FinTrack.Api.Services;
 using FinTrack.Api.DTOs.Holdings;
+using FinTrack.Api.DTOs.Transactions;
 
 
 namespace FinTrack.Api.Controllers;
@@ -108,6 +109,59 @@ public class PortfoliosController : ControllerBase
 
         return Ok(summary);
     
+    }
+
+    [HttpGet("{id}/transactions")]
+    public async Task<ActionResult<IEnumerable<TransactionDto>>> GetPortfolioTransactions(int id)
+    {
+        var portfolioExists = await _context.Portfolios
+            .AnyAsync(p => p.Id == id);
+
+        if (!portfolioExists)
+        {
+            return NotFound("Portfolio was not found.");
+        }
+        
+        var transactions = await _context.Transactions
+            .Where(transaction => transaction.PortfolioId == id)
+            .Select(transaction => new TransactionDto
+            {
+                Id = transaction.Id,
+                PortfolioId = transaction.PortfolioId,
+                StockId = transaction.StockId,
+                Type = transaction.Type,
+                Quantity = transaction.Quantity,
+                PricePerShare = transaction.PricePerShare,
+                TransactionDate = transaction.TransactionDate
+            })
+            .ToListAsync();
+
+        return transactions; 
+    }
+
+    [HttpGet("{id}/holdings")]
+    public async Task<ActionResult<IEnumerable<HoldingDto>>> GetPortfolioHoldings(int id)
+    {
+        var portfolioExists = await _context.Portfolios
+            .AnyAsync(p => p.Id == id);
+
+        if (!portfolioExists)
+        {
+            return NotFound("Portfolio was not found.");
+        }
+
+        var holdings = await _context.Holdings
+            .Where(holding => holding.PortfolioId == id )
+            .Select(holding => new HoldingDto
+            {
+                Id = holding.Id,
+                PortfolioId = holding.PortfolioId,
+                StockId = holding.StockId,
+                Quantity = holding.Quantity
+            })
+            .ToListAsync();
+
+        return holdings;
     }
 
     [HttpPost]
