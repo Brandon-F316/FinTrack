@@ -2,12 +2,18 @@ using FinTrack.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Text.Json.Serialization;
+using FinTrack.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<FinTrackDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.Configure<TwelveDataOptions>(
+    builder.Configuration.GetSection("TwelveData"));
+
+builder.Services.AddHttpClient<IStockPriceService, StockPriceService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

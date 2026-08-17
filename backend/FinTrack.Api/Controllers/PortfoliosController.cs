@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FinTrack.Api.Models;
 using FinTrack.Api.DTOs.Portfolios;
+using FinTrack.Api.Services;
+using FinTrack.Api.DTOs.Holdings;
 
 
 namespace FinTrack.Api.Controllers;
@@ -14,10 +16,12 @@ namespace FinTrack.Api.Controllers;
 public class PortfoliosController : ControllerBase
 {
     private readonly FinTrackDbContext _context;
+    private readonly IStockPriceService _stockPriceService;
 
-    public PortfoliosController(FinTrackDbContext context)
+    public PortfoliosController(FinTrackDbContext context, IStockPriceService stockPriceService)
     {
         _context = context; 
+        _stockPriceService = stockPriceService;
     }
 
     [HttpGet]
@@ -53,6 +57,57 @@ public class PortfoliosController : ControllerBase
         }
 
         return portfolio;
+    }
+
+    [HttpGet("{id}/summary")]
+    public async Task<ActionResult<PortfolioSummaryDto>> GetPortfolioSummary(int id)
+    {
+        var portfolio = await _context.Portfolios
+            .Where(portfolio => portfolio.Id == id)
+            .Select(portfolio => new PortfolioDto
+            {
+                Id = portfolio.Id,
+                Name = portfolio.Name
+            })
+            .FirstOrDefaultAsync();
+
+        if (portfolio == null)
+        {
+            return NotFound("Portfolio was not found.");
+        }
+
+        var holdings = await _context.Holdings
+            .Where(holding => holding.PortfolioId == id)
+            .Select(holding => new PortfolioHoldingSummaryDto
+            {
+                StockId = holding.StockId,
+                Symbol = holding.Stock.Symbol,
+                Quantity = holding.Quantity
+
+            })
+            .ToListAsync();
+        
+        foreach (var holding in holdings)
+        {
+            var price = await _stockPriceService.GetPriceAsync(holding.Symbol);
+
+            holding.CurrentPrice = price ?? 0;
+            holding.MarketValue = holding.Quantity * holding.CurrentPrice;
+            
+        }
+
+        var totalValue = holdings.Sum(holding => holding.MarketValue);
+
+        var summary = new PortfolioSummaryDto
+        {
+            PortfolioId = portfolio.Id,
+            PortfolioName = portfolio.Name,
+            TotalValue = totalValue,
+            Holdings = holdings  
+        };
+
+        return Ok(summary);
+    
     }
 
     [HttpPost]

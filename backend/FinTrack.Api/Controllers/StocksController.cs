@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FinTrack.Api.Models;
 using FinTrack.Api.DTOs.Stocks;
+using FinTrack.Api.Services;
 
 namespace FinTrack.Api.Controllers;
 
@@ -11,10 +12,12 @@ namespace FinTrack.Api.Controllers;
 public class StocksController : ControllerBase
 {
     private readonly FinTrackDbContext _context;
+    private readonly IStockPriceService _stockPriceService;
 
-    public StocksController(FinTrackDbContext context)
+    public StocksController(FinTrackDbContext context, IStockPriceService stockPriceService)
     {
         _context = context;
+        _stockPriceService = stockPriceService;
     }
 
     [HttpGet]
@@ -29,6 +32,19 @@ public class StocksController : ControllerBase
             })
             .ToListAsync();
         return stocks;
+    }
+
+    [HttpGet("price/{symbol}")]
+    public async Task<ActionResult<decimal>> GetStockPrice(string symbol)
+    {
+        var price = await _stockPriceService.GetPriceAsync(symbol);
+
+        if (price == null)
+        {
+            return NotFound("Could not retrieve stock price.");
+        }
+
+        return Ok(price);
     }
 
     [HttpPost]
